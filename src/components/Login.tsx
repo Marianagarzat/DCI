@@ -1,4 +1,4 @@
-
+import PanelAdmin from './PanelAdmin'
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import PanelAsesor from './PanelAsesor'
@@ -113,6 +113,7 @@ if (perfil) {
       {perfil.role === 'agent' && (
         <PanelAsesor uid={perfil.id} />
       )}
+      {perfil.role === 'admin' && <PanelAdmin />}
     </section>
   )
 }

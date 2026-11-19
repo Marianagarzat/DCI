@@ -7,8 +7,12 @@ type Casa = {
   title: string
   description: string | null
   price: number
-  city: string
-  zone: string
+  city: string | null
+  zone: string | null
+  bedrooms: number | null
+  bathrooms: number | null
+  parking: number | null
+  area_m2: number | null
   status: string
   published: boolean
 }
@@ -20,20 +24,30 @@ function PanelAsesor({ uid }: { uid: string }) {
   const [titulo, setTitulo] = useState('')
   const [precio, setPrecio] = useState('')
   const [descripcion, setDescripcion] = useState('')
+  const [ciudad, setCiudad] = useState('')
+  const [zona, setZona] = useState('')
+  const [habitaciones, setHabitaciones] = useState('')
+  const [banos, setBanos] = useState('')
+  const [estacionamientos, setEstacionamientos] = useState('')
+  const [metros, setMetros] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [probando, setProbando] = useState(false)
   const [msg, setMsg] = useState('')
 
-  // cargar propiedades asignadas al asesor
+  // cargar las propiedades asignadas
   async function cargar() {
     setLoading(true)
     setMsg('')
 
     const { data, error } = await supabase
       .from('properties')
-      .select('id, title, description, price, city, zone, status, published')
+      .select(`
+        id, title, description, price,
+        city, zone, bedrooms, bathrooms,
+        parking, area_m2, status, published
+      `)
       .eq('agent_id', uid)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -52,23 +66,68 @@ function PanelAsesor({ uid }: { uid: string }) {
     setLoading(false)
   }
 
-  // abrir el formulario de edicion
+  // abrir el formulario con los datos actuales
   function editar(casa: Casa) {
     setEditando(casa.id)
+
     setTitulo(casa.title)
     setPrecio(String(casa.price))
     setDescripcion(casa.description ?? '')
+    setCiudad(casa.city ?? '')
+    setZona(casa.zone ?? '')
+    setHabitaciones(String(casa.bedrooms ?? ''))
+    setBanos(String(casa.bathrooms ?? ''))
+    setEstacionamientos(String(casa.parking ?? ''))
+    setMetros(String(casa.area_m2 ?? ''))
+
     setMsg('')
   }
 
-  // guardar cambios de una propiedad
+  // convertir un campo numerico opcional
+  function numero(valor: string) {
+    if (valor.trim() === '') {
+      return null
+    }
+
+    return Number(valor)
+  }
+
+  // guardar los cambios
   async function guardar(e: FormEvent<HTMLFormElement>, id: string) {
     e.preventDefault()
 
     const valor = Number(precio)
+    const hab = numero(habitaciones)
+    const ban = numero(banos)
+    const est = numero(estacionamientos)
+    const area = numero(metros)
 
-    if (!titulo.trim() || !Number.isFinite(valor) || valor <= 0) {
-      setMsg('Escribe un título y un precio válido.')
+    if (
+      !titulo.trim() ||
+      !ciudad.trim() ||
+      !Number.isFinite(valor) ||
+      valor <= 0
+    ) {
+      setMsg('Revisa el título, ciudad y precio.')
+      return
+    }
+
+    const cantidades = [hab, ban, est]
+
+    if (
+      cantidades.some(
+        (n) => n !== null && (!Number.isInteger(n) || n < 0)
+      )
+    ) {
+      setMsg('Habitaciones, baños y estacionamientos deben ser números enteros positivos o cero.')
+      return
+    }
+
+    if (
+      area !== null &&
+      (!Number.isFinite(area) || area <= 0)
+    ) {
+      setMsg('Los metros cuadrados deben ser mayores que cero.')
       return
     }
 
@@ -80,11 +139,21 @@ function PanelAsesor({ uid }: { uid: string }) {
       .update({
         title: titulo.trim(),
         price: valor,
-        description: descripcion.trim()
+        description: descripcion.trim(),
+        city: ciudad.trim(),
+        zone: zona.trim(),
+        bedrooms: hab,
+        bathrooms: ban,
+        parking: est,
+        area_m2: area
       })
       .eq('id', id)
       .eq('agent_id', uid)
-      .select('id, title, price, description')
+      .select(`
+        id, title, price, description,
+        city, zone, bedrooms, bathrooms,
+        parking, area_m2
+      `)
       .maybeSingle()
 
     if (error) {
@@ -96,12 +165,7 @@ function PanelAsesor({ uid }: { uid: string }) {
       setCasas((prev) =>
         prev.map((casa) =>
           casa.id === id
-            ? {
-                ...casa,
-                title: data.title,
-                price: data.price,
-                description: data.description
-              }
+            ? { ...casa, ...data }
             : casa
         )
       )
@@ -113,13 +177,12 @@ function PanelAsesor({ uid }: { uid: string }) {
     setGuardando(false)
   }
 
-  // comprobar que un asesor no edite propiedades ajenas
+  // prueba temporal de permisos
   async function probarSeguridad() {
     setProbando(true)
     setMsg('Comprobando permisos...')
 
     try {
-      // confirmar que la sesion es de un asesor activo
       const { data: sesion, error: authError } =
         await supabase.auth.getUser()
 
@@ -135,11 +198,10 @@ function PanelAsesor({ uid }: { uid: string }) {
         .maybeSingle()
 
       if (perfilError || perfil?.role !== 'agent' || !perfil.active) {
-        setMsg('Esta prueba requiere una cuenta de asesor activa.')
+        setMsg('La prueba requiere una cuenta de asesor activa.')
         return
       }
 
-      // buscar la propiedad publica de prueba
       const { data: otra, error: buscarError } = await supabase
         .from('properties')
         .select('id, title')
@@ -147,19 +209,11 @@ function PanelAsesor({ uid }: { uid: string }) {
         .is('agent_id', null)
         .maybeSingle()
 
-      if (buscarError) {
-        console.error(buscarError)
-        setMsg('Error al buscar la propiedad de prueba.')
+      if (buscarError || !otra) {
+        setMsg('No se encontró la propiedad de prueba.')
         return
       }
 
-      if (!otra) {
-        setMsg('No se encontró TEST - Casa pública.')
-        return
-      }
-
-      // intentar editar una propiedad no asignada
-      // enviamos su titulo actual
       const { data, error } = await supabase
         .from('properties')
         .update({ title: otra.title })
@@ -183,7 +237,7 @@ function PanelAsesor({ uid }: { uid: string }) {
       }
     } catch (error) {
       console.error(error)
-      setMsg('Ocurrió un error durante la prueba.')
+      setMsg('Error durante la prueba.')
     } finally {
       setProbando(false)
     }
@@ -253,7 +307,75 @@ function PanelAsesor({ uid }: { uid: string }) {
                   onChange={(e) => setDescripcion(e.target.value)}
                   rows={5}
                   maxLength={5000}
-                  placeholder="Describe la propiedad..."
+                />
+              </div>
+
+              <div>
+                <label htmlFor="ciudad">Ciudad</label>
+                <input
+                  id="ciudad"
+                  value={ciudad}
+                  onChange={(e) => setCiudad(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="zona">Zona</label>
+                <input
+                  id="zona"
+                  value={zona}
+                  onChange={(e) => setZona(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="habitaciones">Habitaciones</label>
+                <input
+                  id="habitaciones"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={habitaciones}
+                  onChange={(e) => setHabitaciones(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="banos">Baños</label>
+                <input
+                  id="banos"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={banos}
+                  onChange={(e) => setBanos(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="estacionamientos">
+                  Estacionamientos
+                </label>
+                <input
+                  id="estacionamientos"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={estacionamientos}
+                  onChange={(e) => setEstacionamientos(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="metros">Metros cuadrados</label>
+                <input
+                  id="metros"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={metros}
+                  onChange={(e) => setMetros(e.target.value)}
                 />
               </div>
 
@@ -286,8 +408,12 @@ function PanelAsesor({ uid }: { uid: string }) {
                 })}
               </p>
 
-              <p>Estado: {casa.status}</p>
+              <p>Habitaciones: {casa.bedrooms ?? 'No especificado'}</p>
+              <p>Baños: {casa.bathrooms ?? 'No especificado'}</p>
+              <p>Estacionamientos: {casa.parking ?? 'No especificado'}</p>
+              <p>Superficie: {casa.area_m2 ?? 'No especificada'} m²</p>
 
+              <p>Estado: {casa.status}</p>
               <p>
                 {casa.published ? 'Publicada' : 'No publicada'}
               </p>
