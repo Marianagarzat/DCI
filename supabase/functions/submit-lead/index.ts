@@ -194,6 +194,69 @@ Deno.serve(async (req) => {
       asesorId = asesor?.id ?? null
     }
 
+
+    // comprobar limites de solicitudes
+
+    const claveHash = Deno.env.get('LEAD_HASH_SECRET')
+
+    if (!claveHash) {
+      return responder(
+        { error: 'Servidor no configurado' },
+        503
+      )
+    }
+
+    // identificar al contacto sin guardar sus datos
+    const contacto = email
+      ? `email:${email.toLowerCase()}`
+      : `phone:${digitos}`
+
+    const encoder = new TextEncoder()
+
+    // preparar clave HMAC
+    const clave = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(claveHash),
+      {
+        name: 'HMAC',
+        hash: 'SHA-256'
+      },
+      false,
+      ['sign']
+    )
+
+    // calcular identificador privado
+    const firma = await crypto.subtle.sign(
+      'HMAC',
+      clave,
+      encoder.encode(contacto)
+    )
+
+    const hash = Array.from(new Uint8Array(firma))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+
+    // consultar el limite en Supabase
+    const { data: permitido, error: errorLimite } =
+      await admin.rpc('dci_check_lead_limit', {
+        p_contact_hash: hash
+      })
+
+    if (errorLimite) {
+      throw errorLimite
+    }
+
+    if (permitido !== true) {
+      return responder(
+        {
+          error:
+            'Demasiadas solicitudes. Intenta más tarde.'
+        },
+        429
+      )
+    }
+
+
     // guardar el prospecto en el CRM
     const { error } = await admin
       .from('leads')
