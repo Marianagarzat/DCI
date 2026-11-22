@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import SubirFotos from './SubirFotos'
+import PanelProspectos from './PanelProspectos'
 
 type Casa = {
   id: string
@@ -475,6 +476,9 @@ if (errorAgentes) {
           <SubirFotos propiedadId={casa.id} />
         </article>
       ))}
+
+      <hr style={{ margin: '32px 0' }} />
+      <PanelProspectos />
     </section>
   )
 }
