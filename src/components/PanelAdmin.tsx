@@ -35,6 +35,9 @@ function PanelAdmin() {
   const [loading, setLoading] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [msg, setMsg] = useState('')
+  const [elegidos, setElegidos] = useState<Record<string, string>>({})
+  const [asignando, setAsignando] = useState<string | null>(null)
+  const [publicando, setPublicando] = useState<string | null>(null)
 
   // cargar el inventario
   async function cargar() {
@@ -60,6 +63,20 @@ function PanelAdmin() {
         setMsg('No hay propiedades para mostrar.')
       }
     }
+
+const { data: agentes, error: errorAgentes } = await supabase
+  .from('profiles')
+  .select('id, name')
+  .eq('role', 'agent')
+  .eq('active', true)
+  .order('name')
+
+if (errorAgentes) {
+  console.error(errorAgentes)
+  setMsg('Error al cargar asesores: ' + errorAgentes.message)
+} else {
+  setAsesores(agentes ?? [])
+}
 
     setLoading(false)
   }
@@ -152,6 +169,75 @@ function PanelAdmin() {
 
     setMsg('Propiedad creada correctamente como borrador.')
     setGuardando(false)
+  }
+
+  async function asignar(casa: Casa) {
+    const elegido = elegidos[casa.id] ?? casa.agent_id ?? ''
+
+    setAsignando(casa.id)
+    setMsg('')
+
+    const { error } = await supabase.rpc('dci_assign_property', {
+      p_property_id: casa.id,
+      p_agent_id: elegido || null
+    })
+
+    if (error) {
+      console.error(error)
+      setMsg('Error al asignar asesor: ' + error.message)
+    } else {
+      setCasas((prev) =>
+        prev.map((c) =>
+          c.id === casa.id
+            ? { ...c, agent_id: elegido || null }
+            : c
+        )
+      )
+
+      setMsg('Asesor actualizado correctamente.')
+    }
+
+    setAsignando(null)
+  }
+
+
+  // publicar o retirar una propiedad del catalogo publico
+  async function cambiarPublicacion(casa: Casa) {
+    const accion = casa.published ? 'despublicar' : 'publicar'
+
+    if (!window.confirm(`¿Seguro que deseas ${accion} "${casa.title}"?`)) {
+      return
+    }
+
+    setPublicando(casa.id)
+    setMsg('')
+
+    try {
+      const { error } = await supabase.rpc('dci_publish_property', {
+        p_property_id: casa.id,
+        p_published: !casa.published
+      })
+
+      if (error) {
+        console.error(error)
+        setMsg('Error al cambiar la publicación: ' + error.message)
+        return
+      }
+
+      setCasas((prev) =>
+        prev.map((c) =>
+          c.id === casa.id
+            ? { ...c, published: !casa.published }
+            : c
+        )
+      )
+
+      setMsg(casa.published
+        ? 'Propiedad despublicada correctamente.'
+        : 'Propiedad publicada correctamente.')
+    } finally {
+      setPublicando(null)
+    }
   }
 
   return (
@@ -338,9 +424,52 @@ function PanelAdmin() {
             Publicación: {casa.published ? 'Publicada' : 'Borrador'}
           </p>
 
-          <p>
-            Asesor: {casa.agent_id ? 'Asignado' : 'Sin asignar'}
-          </p>
+          <button
+            type="button"
+            onClick={() => cambiarPublicacion(casa)}
+            disabled={publicando === casa.id}
+          >
+            {publicando === casa.id
+              ? 'Guardando...'
+              : casa.published
+                ? 'Despublicar propiedad'
+                : 'Publicar propiedad'}
+          </button>
+
+          <div style={{ marginTop: '12px' }}>
+            <label htmlFor={`asesor-${casa.id}`}>
+              Asesor responsable
+            </label>
+
+            <select
+              id={`asesor-${casa.id}`}
+              value={elegidos[casa.id] ?? casa.agent_id ?? ''}
+              onChange={(e) =>
+                setElegidos((prev) => ({
+                  ...prev,
+                  [casa.id]: e.target.value
+                }))
+              }
+            >
+              <option value="">Sin asignar</option>
+
+              {asesores.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              disabled={asignando === casa.id}
+              onClick={() => asignar(casa)}
+            >
+              {asignando === casa.id
+                ? 'Guardando...'
+                : 'Guardar asignación'}
+            </button>
+          </div>
         </article>
       ))}
     </section>
