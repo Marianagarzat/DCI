@@ -1,62 +1,92 @@
-import Login from './components/Login'
+
 import { useState } from 'react'
-import { supabase } from './lib/supabase'
+import Login from './components/Login'
 import ResetPassword from './components/ResetPassword'
+import FotoPortada from './components/FotoPortada'
+import { supabase } from './lib/supabase'
+import GaleriaFotos from './components/GaleriaFotos'
+
+type Casa = {
+  id: string
+  title: string
+  price: number
+  city: string | null
+  zone: string | null
+}
 
 function App() {
-  const [casas, setCasas] = useState<
-    { title: string; price: number; city: string; zone: string }[]
-  >([])
+  const [casas, setCasas] = useState<Casa[]>([])
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // cargar propiedades publicadas
   async function cargar() {
     setLoading(true)
     setMsg('')
 
     const { data, error } = await supabase
-     .from('properties')
-.select('title, price, city, zone')
-.eq('published', true)
-.in('status', ['available', 'reserved'])
-.limit(10)
+      .from('properties')
+      .select('id, title, price, city, zone')
+      .eq('published', true)
+      .in('status', ['available', 'reserved'])
+      .limit(10)
 
     if (error) {
       console.error(error)
-      setMsg(error.message)
+      setMsg('Error al cargar propiedades: ' + error.message)
     } else {
       setCasas(data ?? [])
 
-      if (data?.length === 0) {
+      if (!data?.length) {
         setMsg('No hay propiedades públicas disponibles.')
       }
     }
 
-    
     setLoading(false)
   }
 
-  // mostrar la pantalla para recuperar contraseña
+  // pantalla para recuperar contraseña
   if (window.location.pathname === '/reset-password') {
     return <ResetPassword />
   }
 
   return (
     <main style={{ padding: '40px' }}>
-
       <h1>DCI Distrito Center Inmuebles</h1>
+
       <p>Propiedades en venta y renta</p>
 
-      <button onClick={cargar} disabled={loading}>
+      <button
+        type="button"
+        onClick={cargar}
+        disabled={loading}
+      >
         {loading ? 'Cargando...' : 'Ver propiedades'}
       </button>
 
-      {msg && <p>{msg}</p>}
+      {msg && <p role="status">{msg}</p>}
 
-      {casas.map((casa, i) => (
-        <div key={i}>
-          <h2>{casa.title}</h2>
-          <p>{casa.city} - {casa.zone}</p>
+      {casas.map((casa) => (
+        <div
+          key={casa.id}
+          style={{
+            border: '1px solid #777',
+            padding: '20px',
+            marginTop: '20px'
+          }}
+        >
+        <FotoPortada propiedadId={casa.id} />
+
+<h2>{casa.title}</h2>
+
+<GaleriaFotos propiedadId={casa.id} />
+
+          <p>
+            {casa.city ?? 'Ciudad no especificada'}
+            {' - '}
+            {casa.zone ?? 'Zona no especificada'}
+          </p>
+
           <p>
             {casa.price.toLocaleString('es-MX', {
               style: 'currency',
@@ -65,8 +95,10 @@ function App() {
           </p>
         </div>
       ))}
+
       <hr />
-<Login />
+
+      <Login />
     </main>
   )
 }
