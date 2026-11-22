@@ -1,6 +1,6 @@
-
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import SubirFotos from './SubirFotos'
 
 type Casa = {
   id: string
@@ -400,6 +400,7 @@ if (errorAgentes) {
 
       {casas.map((casa) => (
         <article
+        
           key={casa.id}
           style={{
             border: '1px solid #777',
@@ -470,6 +471,8 @@ if (errorAgentes) {
                 : 'Guardar asignación'}
             </button>
           </div>
+
+          <SubirFotos propiedadId={casa.id} />
         </article>
       ))}
     </section>
