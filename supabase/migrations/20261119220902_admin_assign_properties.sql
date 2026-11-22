@@ -53,4 +53,3 @@ from public, anon;
 grant execute
 on function public.dci_assign_property(uuid, uuid)
 to authenticated;
-asd
