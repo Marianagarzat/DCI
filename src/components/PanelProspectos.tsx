@@ -14,6 +14,7 @@ type Prospecto = {
   phone: string | null
   message: string | null
   status: Estado
+  notes: string | null
   agent_id: string | null
   created_at: string
   properties: Propiedad | Propiedad[] | null
@@ -30,6 +31,8 @@ export default function PanelProspectos() {
   const [prospectos, setProspectos] = useState<Prospecto[]>([])
   const [cargando, setCargando] = useState(true)
   const [actualizando, setActualizando] = useState<string | null>(null)
+  const [guardandoNotas, setGuardandoNotas] = useState<string | null>(null)
+  const [borradores, setBorradores] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
 
@@ -47,6 +50,7 @@ export default function PanelProspectos() {
         phone,
         message,
         status,
+        notes,
         agent_id,
         created_at,
         properties(title)
@@ -57,7 +61,11 @@ export default function PanelProspectos() {
     if (errorConsulta) {
       setError('No se pudieron cargar los prospectos: ' + errorConsulta.message)
     } else {
-      setProspectos((data ?? []) as Prospecto[])
+      const encontrados = (data ?? []) as Prospecto[]
+      setProspectos(encontrados)
+      setBorradores(Object.fromEntries(
+        encontrados.map((p) => [p.id, p.notes ?? ''])
+      ))
     }
 
     setCargando(false)
@@ -99,6 +107,46 @@ export default function PanelProspectos() {
     }
   }
 
+  async function guardarNotas(id: string) {
+    const notas = (borradores[id] ?? '').trim()
+
+    if (notas.length > 2000) {
+      setError('Las notas no pueden superar los 2000 caracteres.')
+      return
+    }
+
+    setGuardandoNotas(id)
+    setError('')
+    setMensaje('')
+
+    try {
+      const { error: errorNotas } = await supabase.rpc(
+        'dci_update_lead_notes',
+        {
+          p_lead_id: id,
+          p_notes: notas
+        }
+      )
+
+      if (errorNotas) {
+        setError('No se pudieron guardar las notas: ' + errorNotas.message)
+        return
+      }
+
+      setProspectos((anteriores) =>
+        anteriores.map((p) =>
+          p.id === id ? { ...p, notes: notas } : p
+        )
+      )
+      setBorradores((anteriores) => ({ ...anteriores, [id]: notas }))
+      setMensaje('Notas guardadas correctamente.')
+    } catch {
+      setError('Error de conexión al guardar las notas.')
+    } finally {
+      setGuardandoNotas(null)
+    }
+  }
+
   return (
     <section>
       <h2>Prospectos</h2>
@@ -107,7 +155,7 @@ export default function PanelProspectos() {
       <button
         type="button"
         onClick={() => void cargar()}
-        disabled={cargando || actualizando !== null}
+        disabled={cargando || actualizando !== null || guardandoNotas !== null}
       >
         {cargando ? 'Cargando...' : 'Actualizar prospectos'}
       </button>
@@ -144,7 +192,7 @@ export default function PanelProspectos() {
               <select
                 id={`estado-${p.id}`}
                 value={p.status}
-                disabled={actualizando !== null}
+                disabled={actualizando !== null || guardandoNotas !== null}
                 onChange={(e) => {
                   void cambiarEstado(p.id, e.target.value as Estado)
                 }}
@@ -163,6 +211,43 @@ export default function PanelProspectos() {
             <p><strong>Teléfono:</strong> {p.phone ?? 'No proporcionado'}</p>
             <p><strong>Mensaje:</strong> {p.message ?? 'Sin mensaje'}</p>
             <p><strong>Asesor:</strong> {p.agent_id ? 'Asignado' : 'Sin asignar'}</p>
+
+            <div style={{ marginTop: '16px' }}>
+              <label htmlFor={`notas-${p.id}`}>
+                <strong>Notas de seguimiento</strong>
+              </label>
+              <br />
+              <textarea
+                id={`notas-${p.id}`}
+                value={borradores[p.id] ?? ''}
+                onChange={(e) =>
+                  setBorradores((anteriores) => ({
+                    ...anteriores,
+                    [p.id]: e.target.value
+                  }))
+                }
+                placeholder="Ej. Contacté al cliente; pendiente confirmar visita."
+                rows={3}
+                maxLength={2000}
+                disabled={guardandoNotas !== null || actualizando !== null}
+                style={{ width: '100%', maxWidth: '520px', boxSizing: 'border-box' }}
+              />
+              <br />
+              <small>{(borradores[p.id] ?? '').length}/2000 caracteres</small>
+              <br />
+              <button
+                type="button"
+                disabled={
+                  guardandoNotas !== null ||
+                  actualizando !== null ||
+                  (borradores[p.id] ?? '').trim() === (p.notes ?? '')
+                }
+                onClick={() => void guardarNotas(p.id)}
+              >
+                {guardandoNotas === p.id ? 'Guardando notas...' : 'Guardar notas'}
+              </button>
+            </div>
+
             <small>
               Recibido: {new Date(p.created_at).toLocaleString('es-MX')}
             </small>
