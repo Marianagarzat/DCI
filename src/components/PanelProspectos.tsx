@@ -32,7 +32,11 @@ const estados: { valor: Estado; nombre: string }[] = [
   { valor: 'closed', nombre: 'Cerrado' }
 ]
 
-export default function PanelProspectos() {
+type Props = {
+  esAdmin?: boolean
+}
+
+export default function PanelProspectos({ esAdmin = true }: Props) {
   const [prospectos, setProspectos] = useState<Prospecto[]>([])
   const [asesores, setAsesores] = useState<Asesor[]>([])
   const [elegidos, setElegidos] = useState<Record<string, string>>({})
@@ -79,19 +83,23 @@ export default function PanelProspectos() {
       ))
     }
 
-    // El administrador puede elegir entre asesores activos.
-    const { data: agentes, error: errorAgentes } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .eq('role', 'agent')
-      .eq('active', true)
-      .order('name')
+    // Solo el administrador necesita la lista de asesores.
+    if (esAdmin) {
+      const { data: agentes, error: errorAgentes } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('role', 'agent')
+        .eq('active', true)
+        .order('name')
 
-    if (errorAgentes) {
-      setError('No se pudieron cargar los asesores: ' + errorAgentes.message)
-      setAsesores([])
+      if (errorAgentes) {
+        setError('No se pudieron cargar los asesores: ' + errorAgentes.message)
+        setAsesores([])
+      } else {
+        setAsesores(agentes ?? [])
+      }
     } else {
-      setAsesores(agentes ?? [])
+      setAsesores([])
     }
 
     setCargando(false)
@@ -174,6 +182,8 @@ export default function PanelProspectos() {
   }
 
   async function asignarProspecto(id: string) {
+    if (!esAdmin) return
+
     const prospecto = prospectos.find((p) => p.id === id)
     if (!prospecto) return
 
@@ -213,8 +223,12 @@ export default function PanelProspectos() {
 
   return (
     <section>
-      <h2>Prospectos</h2>
-      <p>Personas interesadas en las propiedades de DCI.</p>
+      <h2>{esAdmin ? 'Prospectos' : 'Mis prospectos'}</h2>
+      <p>
+        {esAdmin
+          ? 'Personas interesadas en las propiedades de DCI.'
+          : 'Contactos que tienes asignados para darles seguimiento.'}
+      </p>
 
       <button
         type="button"
@@ -274,48 +288,50 @@ export default function PanelProspectos() {
             <p><strong>Correo:</strong> {p.email ?? 'No proporcionado'}</p>
             <p><strong>Teléfono:</strong> {p.phone ?? 'No proporcionado'}</p>
             <p><strong>Mensaje:</strong> {p.message ?? 'Sin mensaje'}</p>
-            <div style={{ marginTop: '16px' }}>
-              <label htmlFor={`asesor-lead-${p.id}`}>
-                <strong>Asesor responsable</strong>
-              </label>
-              <br />
-              <select
-                id={`asesor-lead-${p.id}`}
-                value={elegidos[p.id] ?? p.agent_id ?? ''}
-                onChange={(e) =>
-                  setElegidos((anteriores) => ({
-                    ...anteriores,
-                    [p.id]: e.target.value
-                  }))
-                }
-                disabled={
-                  cargando || actualizando !== null ||
-                  guardandoNotas !== null || asignando !== null
-                }
-              >
-                <option value="">Sin asignar</option>
-                {p.agent_id && !asesores.some((a) => a.id === p.agent_id) && (
-                  <option value={p.agent_id}>Asesor no disponible</option>
-                )}
-                {asesores.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-              {' '}
-              <button
-                type="button"
-                onClick={() => void asignarProspecto(p.id)}
-                disabled={
-                  cargando || actualizando !== null ||
-                  guardandoNotas !== null || asignando !== null ||
-                  (elegidos[p.id] ?? p.agent_id ?? '') === (p.agent_id ?? '')
-                }
-              >
-                {asignando === p.id ? 'Guardando...' : 'Guardar asignación'}
-              </button>
-            </div>
+            {esAdmin && (
+              <div style={{ marginTop: '16px' }}>
+                <label htmlFor={`asesor-lead-${p.id}`}>
+                  <strong>Asesor responsable</strong>
+                </label>
+                <br />
+                <select
+                  id={`asesor-lead-${p.id}`}
+                  value={elegidos[p.id] ?? p.agent_id ?? ''}
+                  onChange={(e) =>
+                    setElegidos((anteriores) => ({
+                      ...anteriores,
+                      [p.id]: e.target.value
+                    }))
+                  }
+                  disabled={
+                    cargando || actualizando !== null ||
+                    guardandoNotas !== null || asignando !== null
+                  }
+                >
+                  <option value="">Sin asignar</option>
+                  {p.agent_id && !asesores.some((a) => a.id === p.agent_id) && (
+                    <option value={p.agent_id}>Asesor no disponible</option>
+                  )}
+                  {asesores.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => void asignarProspecto(p.id)}
+                  disabled={
+                    cargando || actualizando !== null ||
+                    guardandoNotas !== null || asignando !== null ||
+                    (elegidos[p.id] ?? p.agent_id ?? '') === (p.agent_id ?? '')
+                  }
+                >
+                  {asignando === p.id ? 'Guardando...' : 'Guardar asignación'}
+                </button>
+              </div>
+            )}
 
             <div style={{ marginTop: '16px' }}>
               <label htmlFor={`notas-${p.id}`}>

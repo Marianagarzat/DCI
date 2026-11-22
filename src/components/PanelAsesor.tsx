@@ -1,6 +1,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import PanelProspectos from './PanelProspectos'
 
 type Casa = {
   id: string
@@ -425,6 +426,10 @@ function PanelAsesor({ uid }: { uid: string }) {
           )}
         </article>
       ))}
+
+      <hr style={{ margin: '32px 0' }} />
+
+      <PanelProspectos esAdmin={false} />
     </section>
   )
 }
