@@ -25,23 +25,32 @@ function App() {
   const [casas, setCasas] = useState<Casa[]>([])
   const [abierta, setAbierta] = useState<string | null>(null)
 
+  // filtros
   const [ciudad, setCiudad] = useState('')
+  const [zona, setZona] = useState('')
   const [operacion, setOperacion] = useState('')
   const [tipo, setTipo] = useState('')
+  const [precioMin, setPrecioMin] = useState('')
   const [precioMax, setPrecioMax] = useState('')
+  const [orden, setOrden] = useState('recientes')
 
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // buscar propiedades con filtros
   async function cargar() {
+    const min = precioMin === '' ? null : Number(precioMin)
     const max = precioMax === '' ? null : Number(precioMax)
 
     if (
-      max !== null &&
-      (!Number.isFinite(max) || max <= 0)
+      (min !== null && (!Number.isFinite(min) || min < 0)) ||
+      (max !== null && (!Number.isFinite(max) || max <= 0))
     ) {
-      setMsg('Escribe un precio máximo válido.')
+      setMsg('Revisa los precios que ingresaste.')
+      return
+    }
+
+    if (min !== null && max !== null && min > max) {
+      setMsg('El precio mínimo no puede superar al máximo.')
       return
     }
 
@@ -59,10 +68,11 @@ function App() {
       .in('status', ['available', 'reserved'])
 
     if (ciudad.trim()) {
-      consulta = consulta.ilike(
-        'city',
-        `%${ciudad.trim()}%`
-      )
+      consulta = consulta.ilike('city', `%${ciudad.trim()}%`)
+    }
+
+    if (zona.trim()) {
+      consulta = consulta.ilike('zone', `%${zona.trim()}%`)
     }
 
     if (operacion) {
@@ -73,13 +83,25 @@ function App() {
       consulta = consulta.eq('type', tipo)
     }
 
+    if (min !== null) {
+      consulta = consulta.gte('price', min)
+    }
+
     if (max !== null) {
       consulta = consulta.lte('price', max)
     }
 
-    const { data, error } = await consulta
-      .order('created_at', { ascending: false })
-      .limit(50)
+    if (orden === 'menor') {
+      consulta = consulta.order('price', { ascending: true })
+    } else if (orden === 'mayor') {
+      consulta = consulta.order('price', { ascending: false })
+    } else {
+      consulta = consulta.order('created_at', {
+        ascending: false
+      })
+    }
+
+    const { data, error } = await consulta.limit(50)
 
     if (error) {
       console.error(error)
@@ -103,9 +125,12 @@ function App() {
 
   function limpiar() {
     setCiudad('')
+    setZona('')
     setOperacion('')
     setTipo('')
+    setPrecioMin('')
     setPrecioMax('')
+    setOrden('recientes')
     setCasas([])
     setAbierta(null)
     setMsg('Filtros limpiados. Presiona Buscar propiedades.')
@@ -145,6 +170,16 @@ function App() {
         </div>
 
         <div>
+          <label htmlFor="buscar-zona">Zona o colonia</label>
+          <input
+            id="buscar-zona"
+            value={zona}
+            onChange={(e) => setZona(e.target.value)}
+            placeholder="Ej. Valle Oriente"
+          />
+        </div>
+
+        <div>
           <label htmlFor="buscar-operacion">Operación</label>
           <select
             id="buscar-operacion"
@@ -174,15 +209,40 @@ function App() {
         </div>
 
         <div>
-          <label htmlFor="buscar-precio">Precio máximo (MXN)</label>
+          <label htmlFor="precio-min">Precio mínimo (MXN)</label>
           <input
-            id="buscar-precio"
+            id="precio-min"
+            type="number"
+            min="0"
+            value={precioMin}
+            onChange={(e) => setPrecioMin(e.target.value)}
+            placeholder="Ej. 1000000"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="precio-max">Precio máximo (MXN)</label>
+          <input
+            id="precio-max"
             type="number"
             min="1"
             value={precioMax}
             onChange={(e) => setPrecioMax(e.target.value)}
-            placeholder="Ej. 5000000"
+            placeholder="Ej. 10000000"
           />
+        </div>
+
+        <div>
+          <label htmlFor="buscar-orden">Ordenar resultados</label>
+          <select
+            id="buscar-orden"
+            value={orden}
+            onChange={(e) => setOrden(e.target.value)}
+          >
+            <option value="recientes">Más recientes</option>
+            <option value="menor">Menor precio primero</option>
+            <option value="mayor">Mayor precio primero</option>
+          </select>
         </div>
 
         <div style={{ marginTop: '15px' }}>
@@ -246,31 +306,14 @@ function App() {
 
               <p>
                 Operación: {
-                  casa.operation === 'sale'
-                    ? 'Venta'
-                    : 'Renta'
+                  casa.operation === 'sale' ? 'Venta' : 'Renta'
                 }
               </p>
 
               <p>Tipo: {casa.type}</p>
-
-              <p>
-                Habitaciones: {
-                  casa.bedrooms ?? 'No especificado'
-                }
-              </p>
-
-              <p>
-                Baños: {
-                  casa.bathrooms ?? 'No especificado'
-                }
-              </p>
-
-              <p>
-                Estacionamientos: {
-                  casa.parking ?? 'No especificado'
-                }
-              </p>
+              <p>Habitaciones: {casa.bedrooms ?? 'No especificado'}</p>
+              <p>Baños: {casa.bathrooms ?? 'No especificado'}</p>
+              <p>Estacionamientos: {casa.parking ?? 'No especificado'}</p>
 
               <p>
                 Superficie: {
@@ -281,14 +324,12 @@ function App() {
               </p>
 
               <h3>Descripción</h3>
-
               <p>
                 {casa.description ||
                   'Esta propiedad aún no tiene descripción.'}
               </p>
 
               <h3>Fotografías</h3>
-
               <GaleriaFotos propiedadId={casa.id} />
             </section>
           )}
@@ -296,7 +337,6 @@ function App() {
       ))}
 
       <hr />
-
       <Login />
     </main>
   )
