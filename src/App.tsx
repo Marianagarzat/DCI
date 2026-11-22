@@ -5,6 +5,7 @@ import ResetPassword from './components/ResetPassword'
 import FotoPortada from './components/FotoPortada'
 import GaleriaFotos from './components/GaleriaFotos'
 import { supabase } from './lib/supabase'
+import FormularioContacto from './components/FormularioContacto'
 
 type Casa = {
   id: string
@@ -330,7 +331,11 @@ function App() {
               </p>
 
               <h3>Fotografías</h3>
-              <GaleriaFotos propiedadId={casa.id} />
+            <GaleriaFotos propiedadId={casa.id} />
+
+<hr />
+
+<FormularioContacto propiedadId={casa.id} />
             </section>
           )}
         </article>
