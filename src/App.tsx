@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import Login from './components/Login'
 import ResetPassword from './components/ResetPassword'
 import FotoPortada from './components/FotoPortada'
@@ -24,15 +24,31 @@ type Casa = {
 function App() {
   const [casas, setCasas] = useState<Casa[]>([])
   const [abierta, setAbierta] = useState<string | null>(null)
+
+  const [ciudad, setCiudad] = useState('')
+  const [operacion, setOperacion] = useState('')
+  const [tipo, setTipo] = useState('')
+  const [precioMax, setPrecioMax] = useState('')
+
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // cargar propiedades publicadas
+  // buscar propiedades con filtros
   async function cargar() {
+    const max = precioMax === '' ? null : Number(precioMax)
+
+    if (
+      max !== null &&
+      (!Number.isFinite(max) || max <= 0)
+    ) {
+      setMsg('Escribe un precio máximo válido.')
+      return
+    }
+
     setLoading(true)
     setMsg('')
 
-    const { data, error } = await supabase
+    let consulta = supabase
       .from('properties')
       .select(`
         id, title, description, price,
@@ -41,30 +57,64 @@ function App() {
       `)
       .eq('published', true)
       .in('status', ['available', 'reserved'])
+
+    if (ciudad.trim()) {
+      consulta = consulta.ilike(
+        'city',
+        `%${ciudad.trim()}%`
+      )
+    }
+
+    if (operacion) {
+      consulta = consulta.eq('operation', operacion)
+    }
+
+    if (tipo) {
+      consulta = consulta.eq('type', tipo)
+    }
+
+    if (max !== null) {
+      consulta = consulta.lte('price', max)
+    }
+
+    const { data, error } = await consulta
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(50)
 
     if (error) {
       console.error(error)
-      setMsg('Error al cargar propiedades: ' + error.message)
+      setMsg('Error al buscar: ' + error.message)
     } else {
       setCasas(data ?? [])
       setAbierta(null)
 
       if (!data?.length) {
-        setMsg('No hay propiedades públicas disponibles.')
+        setMsg('No encontramos propiedades con esos filtros.')
       }
     }
 
     setLoading(false)
   }
 
-  // abrir o cerrar los detalles
+  function buscar(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    void cargar()
+  }
+
+  function limpiar() {
+    setCiudad('')
+    setOperacion('')
+    setTipo('')
+    setPrecioMax('')
+    setCasas([])
+    setAbierta(null)
+    setMsg('Filtros limpiados. Presiona Buscar propiedades.')
+  }
+
   function verDetalles(id: string) {
     setAbierta(abierta === id ? null : id)
   }
 
-  // mostrar recuperación de contraseña
   if (window.location.pathname === '/reset-password') {
     return <ResetPassword />
   }
@@ -74,15 +124,86 @@ function App() {
       <h1>DCI Distrito Center Inmuebles</h1>
       <p>Propiedades en venta y renta</p>
 
-      <button
-        type="button"
-        onClick={cargar}
-        disabled={loading}
+      <form
+        onSubmit={buscar}
+        style={{
+          border: '1px solid #777',
+          padding: '20px',
+          marginTop: '20px'
+        }}
       >
-        {loading ? 'Cargando...' : 'Ver propiedades'}
-      </button>
+        <h2>Buscar propiedades</h2>
+
+        <div>
+          <label htmlFor="buscar-ciudad">Ciudad</label>
+          <input
+            id="buscar-ciudad"
+            value={ciudad}
+            onChange={(e) => setCiudad(e.target.value)}
+            placeholder="Ej. Monterrey"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="buscar-operacion">Operación</label>
+          <select
+            id="buscar-operacion"
+            value={operacion}
+            onChange={(e) => setOperacion(e.target.value)}
+          >
+            <option value="">Venta y renta</option>
+            <option value="sale">Venta</option>
+            <option value="rent">Renta</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="buscar-tipo">Tipo de inmueble</label>
+          <select
+            id="buscar-tipo"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+          >
+            <option value="">Todos los tipos</option>
+            <option value="house">Casa</option>
+            <option value="apartment">Departamento</option>
+            <option value="land">Terreno</option>
+            <option value="commercial">Local comercial</option>
+            <option value="office">Oficina</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="buscar-precio">Precio máximo (MXN)</label>
+          <input
+            id="buscar-precio"
+            type="number"
+            min="1"
+            value={precioMax}
+            onChange={(e) => setPrecioMax(e.target.value)}
+            placeholder="Ej. 5000000"
+          />
+        </div>
+
+        <div style={{ marginTop: '15px' }}>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Buscando...' : 'Buscar propiedades'}
+          </button>
+
+          <button
+            type="button"
+            onClick={limpiar}
+            disabled={loading}
+            style={{ marginLeft: '10px' }}
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      </form>
 
       {msg && <p role="status">{msg}</p>}
+
+      <h2>Propiedades disponibles</h2>
 
       {casas.map((casa) => (
         <article
