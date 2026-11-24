@@ -141,8 +141,24 @@ function App() {
     setAbierta(abierta === id ? null : id)
   }
 
+
+  // recuperar contraseña
   if (window.location.pathname === '/reset-password') {
     return <ResetPassword />
+  }
+
+  // acceso privado para administradores y asesores
+  if (window.location.pathname === '/panel') {
+    return (
+      <main style={{ padding: '40px' }}>
+        <a href="/">← Volver al catálogo</a>
+
+        <h1>DCI Distrito Center Inmuebles</h1>
+        <p>Portal de administración</p>
+
+        <Login />
+      </main>
+    )
   }
 
   return (
@@ -342,7 +358,9 @@ function App() {
       ))}
 
       <hr />
-      <Login />
+      <a href="/panel">
+  Acceso para asesores y administradores
+</a>
     </main>
   )
 }
