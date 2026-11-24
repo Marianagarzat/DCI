@@ -13,6 +13,7 @@ type Casa = {
   title: string
   description: string | null
   price: number
+  old_price: number | null
   city: string | null
   zone: string | null
   type: string
@@ -34,9 +35,19 @@ const tipos: Record<string, string> = {
   commercial: 'Local comercial', office: 'Oficina'
 }
 
+function tieneReduccion(casa: Casa): boolean {
+  return casa.old_price !== null && casa.old_price > casa.price && casa.price > 0
+}
+
+function moneda(valor: number) {
+  return valor.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+}
+
 function Catalogo() {
   const [casas, setCasas] = useState<Casa[]>([])
   const [destacadas, setDestacadas] = useState<Casa[]>([])
+  const [rebajas, setRebajas] = useState<Casa[]>([])
+  const [errorRebajas, setErrorRebajas] = useState(false)
   const [inicio, setInicio] = useState(true)
   const [errorDestacadas, setErrorDestacadas] = useState(false)
   const [abierta, setAbierta] = useState<string | null>(null)
@@ -67,12 +78,14 @@ function Catalogo() {
     setLoading(true)
     setInicio(mostrarInicio)
     setDestacadas([])
+    setRebajas([])
+    setErrorRebajas(false)
     setErrorDestacadas(false)
     setMsg('')
     setAbierta(null)
     try {
       const columnas = `id, title, description, price, city, zone, type, operation,
-          bedrooms, bathrooms, parking, area_m2, featured`
+          bedrooms, bathrooms, parking, area_m2, featured, old_price`
       let consulta = supabase
         .from('properties')
         .select(columnas)
@@ -90,7 +103,7 @@ function Catalogo() {
       else if (f.orden === 'mayor') consulta = consulta.order('price', { ascending: false })
       else consulta = consulta.order('created_at', { ascending: false })
 
-      const [resultado, seleccion] = await Promise.all([
+      const [resultado, seleccion, descuentos] = await Promise.all([
         consulta.limit(50),
         mostrarInicio
           ? supabase.from('properties').select(columnas)
@@ -99,6 +112,14 @@ function Catalogo() {
               .eq('featured', true)
               .order('created_at', { ascending: false })
               .limit(6)
+          : Promise.resolve(null),
+        mostrarInicio
+          ? supabase.from('properties').select(columnas)
+              .eq('published', true)
+              .in('status', ['available', 'reserved'])
+              .not('old_price', 'is', null)
+              .order('created_at', { ascending: false })
+              .limit(50)
           : Promise.resolve(null)
       ])
       const { data, error } = resultado
@@ -110,6 +131,12 @@ function Catalogo() {
         setErrorDestacadas(true)
       } else {
         setDestacadas(seleccion?.data ?? [])
+      }
+      if (descuentos?.error) {
+        console.error(descuentos.error)
+        setErrorRebajas(true)
+      } else {
+        setRebajas((descuentos?.data ?? []).filter(tieneReduccion).slice(0, 6))
       }
       if (!data?.length) setMsg('No encontramos propiedades con esos filtros.')
     } catch (error) {
@@ -142,6 +169,10 @@ function Catalogo() {
   function renderCasas(lista: Casa[], grupo: string) {
     return lista.map(casa => {
       const clave = `${grupo}:${casa.id}`
+      const anterior = casa.old_price
+      const rebaja = anterior !== null && tieneReduccion(casa)
+      const ahorro = rebaja ? anterior - casa.price : 0
+      const porcentaje = rebaja ? ahorro / anterior * 100 : 0
       return (
               <article key={clave} className={`dci-public-card${abierta === clave ? ' dci-public-card-open' : ''}`}>
                 <div className="dci-public-photo">
@@ -153,7 +184,12 @@ function Catalogo() {
                   <span className="dci-public-type">{tipos[casa.type] ?? casa.type}</span>
                   <h3>{casa.title}</h3>
                   <p className="dci-public-location">{[casa.city, casa.zone].filter(Boolean).join(' · ') || 'Ubicación no especificada'}</p>
-                  <p className="dci-public-price">{casa.price.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })} <small>MXN</small></p>
+                  {rebaja && <div className="dci-public-reduction">
+                    <span className="dci-public-old-price">Antes: <del>{moneda(anterior)}</del></span>
+                    <span className="dci-public-discount">−{porcentaje.toLocaleString('es-MX', { maximumFractionDigits: 2 })}%</span>
+                  </div>}
+                  <p className="dci-public-price">{moneda(casa.price)} <small>MXN</small></p>
+                  {rebaja && <p className="dci-public-savings">Ahorra {moneda(ahorro)} MXN</p>}
                   <div className="dci-public-facts">
                     {casa.bedrooms !== null && <span>{casa.bedrooms} hab.</span>}
                     {casa.bathrooms !== null && <span>{casa.bathrooms} baños</span>}
@@ -225,6 +261,16 @@ function Catalogo() {
             </div>
             {errorDestacadas && <p className="dci-public-notice" role="status">No pudimos cargar las propiedades destacadas.</p>}
             {destacadas.length > 0 && <div className="dci-public-grid">{renderCasas(destacadas, 'destacadas')}</div>}
+          </section>
+        )}
+
+        {inicio && !loading && (rebajas.length > 0 || errorRebajas) && (
+          <section id="rebajas" className="dci-public-results dci-public-rebajas" aria-labelledby="titulo-rebajas">
+            <div className="dci-public-results-heading">
+              <div><span className="dci-public-kicker">OPORTUNIDADES DCI</span><h2 id="titulo-rebajas">Bajaron de precio</h2></div>
+            </div>
+            {errorRebajas && <p className="dci-public-notice" role="status">No pudimos cargar las reducciones de precio.</p>}
+            {rebajas.length > 0 && <div className="dci-public-grid">{renderCasas(rebajas, 'rebajas')}</div>}
           </section>
         )}
 

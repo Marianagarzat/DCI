@@ -77,21 +77,15 @@ body:has(.dci-catalogo) { margin: 0; display: block; background: #f5f7fa; }
 .dci-public-more { padding-top: 0; }
 .dci-public-featured-tag { position: absolute; right: 14px; top: 14px; background: #fff4d6; color: #704c12; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 750; box-shadow: 0 2px 8px #14243a20; }
 
-/* Corrección de contraste en el catálogo */
 
-.dci-catalogo {
-  color: #14243a;
-  color-scheme: light;
-}
-
-.dci-public-filter h2,
-.dci-public-results h2,
-.dci-public-card h3,
-.dci-public-detail h3,
-.dci-public-contact h3 {
-  color: #14243a;
-}
-
-.dci-public-hero h1 {
-  color: #ffffff;
-}
+/* Contraste de encabezados y reducciones de precio */
+.dci-catalogo .dci-public-filter h2,
+.dci-catalogo .dci-public-results h2,
+.dci-catalogo .dci-public-card h3 { color: #14243a; }
+.dci-catalogo .dci-public-hero h1 { color: #fff; }
+.dci-public-rebajas { padding-bottom: 8px; }
+.dci-public-reduction { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.dci-public-old-price { color: #52637b; font-size: 13px; }
+.dci-public-discount { color: #21633f; background: #e7f5ec; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 750; }
+.dci-public-reduction + .dci-public-price { margin-top: 6px !important; }
+.dci-catalogo .dci-public-savings { color: #21633f; font-weight: 650; font-size: 13px; margin-bottom: 12px; }
