@@ -1,0 +1,59 @@
+/* DCI CRM — estilos exclusivos de este componente */
+.dci-crm {
+  color-scheme: light;
+  font-family: inherit;
+  text-align: left;
+  color: #1e293b;
+  background: #f4f6fa;
+  border: 1px solid #dbe2ec;
+  border-radius: 16px;
+  padding: clamp(16px, 3vw, 32px);
+  margin: 24px auto;
+  max-width: 1200px;
+  min-width: 0;
+  line-height: 1.55;
+}
+.dci-crm, .dci-crm * { box-sizing: border-box; }
+.dci-crm-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.dci-crm .dci-crm-eyebrow { display: block; font-size: 11px; font-weight: 700; letter-spacing: .13em; color: #52637b; }
+.dci-crm h2 { margin: 5px 0; color: #14243a; font-size: clamp(24px, 3vw, 30px); line-height: 1.2; }
+.dci-crm-header p { margin: 6px 0 0; color: #52637b; font-size: 14px; }
+.dci-crm-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr)); gap: 12px; margin-bottom: 22px; }
+.dci-crm-metric { background: white; border: 1px solid #dbe2ec; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; }
+.dci-crm-metric span { color: #52637b; font-size: 13px; font-weight: 600; }
+.dci-crm-metric strong { font-size: 26px; color: #14243a; line-height: 1.2; }
+.dci-crm-metrics > small { grid-column: 1 / -1; color: #52637b; }
+.dci-crm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); gap: 16px; align-items: start; }
+.dci-crm-contact { background: white; border: 1px solid #dbe2ec; border-radius: 14px; padding: 20px; min-width: 0; box-shadow: 0 3px 12px #14243a08; overflow-wrap: anywhere; }
+.dci-crm-contact-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.dci-crm-contact h3 { font-size: 19px; color: #14243a; margin: 0; }
+.dci-crm-status { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #edf1f6; color: #34445a; }
+.dci-crm-status-new { background: #e4edfc; color: #234c94; }
+.dci-crm-status-contacted { background: #fff0d4; color: #805300; }
+.dci-crm-status-qualified { background: #dff3e8; color: #176044; }
+.dci-crm-status-closed { background: #e8ecf2; color: #49566b; }
+.dci-crm-details { margin: 16px 0; border-top: 1px solid #e5eaf0; border-bottom: 1px solid #e5eaf0; padding: 12px 0; }
+.dci-crm-details p { margin: 6px 0; font-size: 14px; color: #52637b; white-space: pre-wrap; }
+.dci-crm-details strong { color: #1e293b; }
+.dci-crm-field { margin: 12px 0; }
+.dci-crm-field label { display: block; margin-bottom: 6px; font-size: 13px; color: #34445a; }
+.dci-crm-field > br { display: none; }
+.dci-crm select, .dci-crm textarea { display: block; background: #fff; border: 1px solid #b9c6d7; color: #14243a; border-radius: 8px; padding: 10px 12px; width: 100%; max-width: 100%; font: inherit; font-size: 14px; }
+.dci-crm textarea { min-height: 95px; resize: vertical; }
+.dci-crm button { font: inherit; font-size: 13px; font-weight: 600; background: #24466b; color: #fff; border: 1px solid transparent; border-radius: 8px; padding: 9px 14px; cursor: pointer; white-space: normal; }
+.dci-crm button:not(:disabled):hover { background: #173453; }
+.dci-crm button:disabled { background: #e5eaf0; color: #64748b; cursor: not-allowed; }
+.dci-crm .dci-crm-refresh:not(:disabled) { background: white; color: #24466b; border-color: #b9c6d7; }
+.dci-crm .dci-crm-refresh:not(:disabled):hover { background: #e9eff7; }
+.dci-crm-assignment button, .dci-crm-notes button { margin-top: 9px; }
+.dci-crm-notes small { display: block; font-size: 12px; color: #52637b; margin-top: 5px; }
+.dci-crm-date { display: block; margin-top: 18px; padding-top: 10px; border-top: 1px solid #e5eaf0; color: #52637b; font-size: 12px; }
+.dci-crm-alert, .dci-crm-success { padding: 12px; border-radius: 8px; font-size: 14px; }
+.dci-crm-alert { background: #feecec; color: #952c2c; }
+.dci-crm-success { background: #e1f3e9; color: #176044; }
+.dci-crm :is(button, select, textarea):focus-visible { outline: 3px solid #6090c9; outline-offset: 2px; }
+@media (max-width: 480px) {
+  .dci-crm { padding: 14px; }
+  .dci-crm-contact { padding: 14px; }
+  .dci-crm-header button { width: 100%; }
+}
