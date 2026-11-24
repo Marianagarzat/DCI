@@ -71,3 +71,27 @@ body:has(.dci-catalogo) { margin: 0; display: block; background: #f5f7fa; }
 .dci-public-footer a { color: #d7e3f2; text-decoration: underline; }
 @media(max-width: 900px) { .dci-public-fields { grid-template-columns: repeat(2,minmax(0,1fr)); } .dci-public-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width: 560px) { .dci-public-wrap { width: calc(100% - 28px); } .dci-public-nav-inner { align-items: flex-start; flex-direction: column; padding: 14px 0; gap: 12px; } .dci-public-nav nav { gap: 16px; } .dci-public-hero { padding-bottom: 76px; } .dci-public-fields, .dci-public-grid, .dci-public-card-open { grid-template-columns: minmax(0,1fr); } .dci-public-card-body { padding: 16px; } .dci-public-results { padding-top: 30px; } .dci-public-contact { padding: 8px; } }
+
+/* Secciones del catálogo */
+.dci-public-featured { padding-bottom: 8px; }
+.dci-public-more { padding-top: 0; }
+.dci-public-featured-tag { position: absolute; right: 14px; top: 14px; background: #fff4d6; color: #704c12; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 750; box-shadow: 0 2px 8px #14243a20; }
+
+/* Corrección de contraste en el catálogo */
+
+.dci-catalogo {
+  color: #14243a;
+  color-scheme: light;
+}
+
+.dci-public-filter h2,
+.dci-public-results h2,
+.dci-public-card h3,
+.dci-public-detail h3,
+.dci-public-contact h3 {
+  color: #14243a;
+}
+
+.dci-public-hero h1 {
+  color: #ffffff;
+}
