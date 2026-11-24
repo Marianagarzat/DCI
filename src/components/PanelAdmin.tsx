@@ -12,6 +12,7 @@ type Casa = {
   zone: string | null
   status: string
   published: boolean
+  featured: boolean
   agent_id: string | null
 }
 
@@ -41,6 +42,7 @@ function PanelAdmin() {
   const [elegidos, setElegidos] = useState<Record<string, string>>({})
   const [asignando, setAsignando] = useState<string | null>(null)
   const [publicando, setPublicando] = useState<string | null>(null)
+  const [destacando, setDestacando] = useState<string | null>(null)
 
   // cargar el inventario
   async function cargar() {
@@ -51,7 +53,7 @@ function PanelAdmin() {
       .from('properties')
       .select(`
         id, title, price, city, zone,
-        status, published, agent_id
+        status, published, featured, agent_id
       `)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -243,6 +245,39 @@ if (errorAgentes) {
     }
   }
 
+  // destacar o retirar una propiedad de la seleccion publica
+  async function cambiarDestacada(casa: Casa) {
+    if (destacando !== null) return
+
+    const valor = !casa.featured
+    setDestacando(casa.id)
+    setMsg('')
+
+    try {
+      const { error } = await supabase.rpc('dci_feature_property', {
+        p_property_id: casa.id,
+        p_featured: valor
+      })
+
+      if (error) {
+        setMsg('Error al actualizar destacados: ' + error.message)
+        return
+      }
+
+      setCasas((prev) => prev.map((c) =>
+        c.id === casa.id ? { ...c, featured: valor } : c
+      ))
+      setMsg(valor
+        ? 'Propiedad destacada correctamente.'
+        : 'Propiedad retirada de destacados.')
+    } catch (error) {
+      console.error(error)
+      setMsg('No se pudo confirmar el cambio de destacados. Actualiza el inventario.')
+    } finally {
+      setDestacando(null)
+    }
+  }
+
   return (
     <section className="dci-admin">
       <aside className="dci-admin-sidebar">
@@ -289,7 +324,7 @@ if (errorAgentes) {
           <button
             type="button"
             onClick={cargar}
-            disabled={loading}
+            disabled={loading || destacando !== null}
           >
             {loading ? 'Cargando...' : 'Ver todas las propiedades'}
           </button>
@@ -469,6 +504,25 @@ if (errorAgentes) {
                     ? 'Despublicar propiedad'
                     : 'Publicar propiedad'}
               </button>
+
+              <div style={{ marginTop: '12px' }}>
+                <p>Destacada: {casa.featured ? 'Sí' : 'No'}</p>
+                <button
+                  type="button"
+                  aria-pressed={casa.featured}
+                  disabled={destacando !== null || loading || guardando}
+                  onClick={() => cambiarDestacada(casa)}
+                >
+                  {destacando === casa.id
+                    ? 'Guardando...'
+                    : casa.featured
+                      ? 'Quitar de destacados'
+                      : '★ Destacar propiedad'}
+                </button>
+                {!casa.published && casa.featured && (
+                  <p>Esta propiedad no será visible mientras sea borrador.</p>
+                )}
+              </div>
 
               <div style={{ marginTop: '12px' }}>
                 <label htmlFor={`asesor-${casa.id}`}>
