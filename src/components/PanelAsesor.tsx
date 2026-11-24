@@ -34,7 +34,6 @@ function PanelAsesor({ uid }: { uid: string }) {
 
   const [loading, setLoading] = useState(false)
   const [guardando, setGuardando] = useState(false)
-  const [probando, setProbando] = useState(false)
   const [msg, setMsg] = useState('')
 
   // cargar las propiedades asignadas
@@ -178,72 +177,6 @@ function PanelAsesor({ uid }: { uid: string }) {
     setGuardando(false)
   }
 
-  // prueba temporal de permisos
-  async function probarSeguridad() {
-    setProbando(true)
-    setMsg('Comprobando permisos...')
-
-    try {
-      const { data: sesion, error: authError } =
-        await supabase.auth.getUser()
-
-      if (authError || !sesion.user || sesion.user.id !== uid) {
-        setMsg('No se pudo verificar la sesión del asesor.')
-        return
-      }
-
-      const { data: perfil, error: perfilError } = await supabase
-        .from('profiles')
-        .select('role, active')
-        .eq('id', uid)
-        .maybeSingle()
-
-      if (perfilError || perfil?.role !== 'agent' || !perfil.active) {
-        setMsg('La prueba requiere una cuenta de asesor activa.')
-        return
-      }
-
-      const { data: otra, error: buscarError } = await supabase
-        .from('properties')
-        .select('id, title')
-        .eq('title', 'TEST - Casa pública')
-        .is('agent_id', null)
-        .maybeSingle()
-
-      if (buscarError || !otra) {
-        setMsg('No se encontró la propiedad de prueba.')
-        return
-      }
-
-      const { data, error } = await supabase
-        .from('properties')
-        .update({ title: otra.title })
-        .eq('id', otra.id)
-        .select('id')
-
-      if (error) {
-        if (error.code === '42501') {
-          setMsg('Prueba correcta: Supabase bloqueó la edición.')
-        } else {
-          console.error(error)
-          setMsg('Error inesperado. Revisa la consola.')
-        }
-        return
-      }
-
-      if (data?.length === 0) {
-        setMsg('Prueba correcta: 0 propiedades modificadas.')
-      } else {
-        setMsg('ALERTA: se permitió editar una propiedad ajena.')
-      }
-    } catch (error) {
-      console.error(error)
-      setMsg('Error durante la prueba.')
-    } finally {
-      setProbando(false)
-    }
-  }
-
   return (
     <section style={{ padding: '20px' }}>
       <h2>Panel del asesor</h2>
@@ -251,15 +184,6 @@ function PanelAsesor({ uid }: { uid: string }) {
 
       <button onClick={cargar} disabled={loading}>
         {loading ? 'Cargando...' : 'Cargar mis propiedades'}
-      </button>
-
-      <button
-        type="button"
-        onClick={probarSeguridad}
-        disabled={probando}
-        style={{ marginLeft: '10px' }}
-      >
-        {probando ? 'Probando...' : 'Probar seguridad'}
       </button>
 
       {msg && <p role="status">{msg}</p>}
