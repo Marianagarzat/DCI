@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import SubirFotos from './SubirFotos'
 import PanelProspectos from './PanelProspectos'
+import './PanelAdmin.css'
 
 type Casa = {
   id: string
@@ -20,6 +21,7 @@ type Asesor = {
 }
 
 function PanelAdmin() {
+  const [seccion, setSeccion] = useState<'inventario' | 'prospectos'>('inventario')
   const [casas, setCasas] = useState<Casa[]>([])
   const [asesores, setAsesores] = useState<Asesor[]>([])
 
@@ -242,243 +244,277 @@ if (errorAgentes) {
   }
 
   return (
-    <section style={{ padding: '20px' }}>
-      <h2>Panel de administración</h2>
-      <p>Inventario de propiedades de DCI</p>
-
-      <button
-        type="button"
-        onClick={cargar}
-        disabled={loading}
-      >
-        {loading ? 'Cargando...' : 'Ver todas las propiedades'}
-      </button>
-
-      <button
-        type="button"
-        onClick={nuevo}
-        style={{ marginLeft: '10px' }}
-      >
-        + Agregar propiedad
-      </button>
-
-      {msg && <p role="status">{msg}</p>}
-
-      {mostrar && (
-        <form
-          onSubmit={guardar}
-          style={{
-            border: '1px solid #777',
-            padding: '20px',
-            marginTop: '20px'
-          }}
-        >
-          <h3>Agregar nueva propiedad</h3>
-
+    <section className="dci-admin">
+      <aside className="dci-admin-sidebar">
+        <div className="dci-admin-brand">
+          <span className="dci-admin-logo">DCI</span>
           <div>
-            <label htmlFor="nuevo-titulo">Título</label>
-            <input
-              id="nuevo-titulo"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder="TEST - Casa en San Pedro"
-              required
-            />
+            <strong>Distrito Center</strong>
+            <small>Inmuebles · Administración</small>
           </div>
+        </div>
+        <nav aria-label="Secciones del panel">
+          <span className="dci-admin-nav-label">GESTIÓN</span>
+          <button
+            type="button"
+            aria-pressed={seccion === 'inventario'}
+            onClick={() => setSeccion('inventario')}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="m3 10 9-7 9 7v11H3z"/><path d="M9 21v-8h6v8"/></svg>
+            Inventario
+          </button>
+          <button
+            type="button"
+            aria-pressed={seccion === 'prospectos'}
+            onClick={() => setSeccion('prospectos')}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v3"/></svg>
+            Prospectos
+          </button>
+        </nav>
+        <a className="dci-admin-catalogo" href="/">Ver catálogo público <span aria-hidden="true">↗</span></a>
+      </aside>
 
-          <div>
-            <label htmlFor="nuevo-precio">Precio (MXN)</label>
-            <input
-              id="nuevo-precio"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={precio}
-              onChange={(e) => setPrecio(e.target.value)}
-              required
-            />
-          </div>
+      <div className="dci-admin-main">
+        <header className="dci-admin-header">
+          <span>DCI / ADMINISTRACIÓN</span>
+          <h2>{seccion === 'inventario' ? 'Inventario de propiedades' : 'Gestión de prospectos'}</h2>
+          <p>{seccion === 'inventario'
+            ? 'Administra tus inmuebles, publicaciones y asesores responsables.'
+            : 'Consulta y da seguimiento a los contactos de DCI.'}</p>
+        </header>
 
-          <div>
-            <label htmlFor="nuevo-operacion">Operación</label>
-            <select
-              id="nuevo-operacion"
-              value={operacion}
-              onChange={(e) => setOperacion(e.target.value)}
-            >
-              <option value="sale">Venta</option>
-              <option value="rent">Renta</option>
-            </select>
-          </div>
+        <div className="dci-admin-inventory" hidden={seccion !== 'inventario'}>
 
-          <div>
-            <label htmlFor="nuevo-tipo">Tipo de inmueble</label>
-            <select
-              id="nuevo-tipo"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
-            >
-              <option value="house">Casa</option>
-              <option value="apartment">Departamento</option>
-              <option value="land">Terreno</option>
-              <option value="commercial">Local comercial</option>
-              <option value="office">Oficina</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="nuevo-descripcion">
-              Descripción
-            </label>
-            <textarea
-              id="nuevo-descripcion"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              rows={4}
-              maxLength={5000}
-              placeholder="Describe la propiedad..."
-            />
-          </div>
-
-          <div>
-            <label htmlFor="nuevo-ciudad">Ciudad</label>
-            <input
-              id="nuevo-ciudad"
-              value={ciudad}
-              onChange={(e) => setCiudad(e.target.value)}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="nuevo-zona">Zona o colonia</label>
-            <input
-              id="nuevo-zona"
-              value={zona}
-              onChange={(e) => setZona(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="nuevo-asesor">
-              Asesor responsable
-            </label>
-            <select
-              id="nuevo-asesor"
-              value={asesor}
-              onChange={(e) => setAsesor(e.target.value)}
-            >
-              <option value="">Sin asignar</option>
-
-              {asesores.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <p>
-            La propiedad comenzará como borrador
-            y no aparecerá en el catálogo público.
-          </p>
-
-          <button type="submit" disabled={guardando}>
-            {guardando ? 'Guardando...' : 'Guardar propiedad'}
+          <button
+            type="button"
+            onClick={cargar}
+            disabled={loading}
+          >
+            {loading ? 'Cargando...' : 'Ver todas las propiedades'}
           </button>
 
           <button
             type="button"
-            disabled={guardando}
-            onClick={() => setMostrar(false)}
+            onClick={nuevo}
+            style={{ marginLeft: '10px' }}
           >
-            Cancelar
+            + Agregar propiedad
           </button>
-        </form>
-      )}
 
-      <h3>Propiedades registradas</h3>
+          {msg && <p role="status">{msg}</p>}
 
-      {casas.map((casa) => (
-        <article
+          {mostrar && (
+            <form
+              onSubmit={guardar}
+              className="dci-admin-property-form"
+            >
+              <h3>Agregar nueva propiedad</h3>
+
+              <div>
+                <label htmlFor="nuevo-titulo">Título</label>
+                <input
+                  id="nuevo-titulo"
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  placeholder="TEST - Casa en San Pedro"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nuevo-precio">Precio (MXN)</label>
+                <input
+                  id="nuevo-precio"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={precio}
+                  onChange={(e) => setPrecio(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nuevo-operacion">Operación</label>
+                <select
+                  id="nuevo-operacion"
+                  value={operacion}
+                  onChange={(e) => setOperacion(e.target.value)}
+                >
+                  <option value="sale">Venta</option>
+                  <option value="rent">Renta</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="nuevo-tipo">Tipo de inmueble</label>
+                <select
+                  id="nuevo-tipo"
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value)}
+                >
+                  <option value="house">Casa</option>
+                  <option value="apartment">Departamento</option>
+                  <option value="land">Terreno</option>
+                  <option value="commercial">Local comercial</option>
+                  <option value="office">Oficina</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="nuevo-descripcion">
+                  Descripción
+                </label>
+                <textarea
+                  id="nuevo-descripcion"
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  rows={4}
+                  maxLength={5000}
+                  placeholder="Describe la propiedad..."
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nuevo-ciudad">Ciudad</label>
+                <input
+                  id="nuevo-ciudad"
+                  value={ciudad}
+                  onChange={(e) => setCiudad(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nuevo-zona">Zona o colonia</label>
+                <input
+                  id="nuevo-zona"
+                  value={zona}
+                  onChange={(e) => setZona(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nuevo-asesor">
+                  Asesor responsable
+                </label>
+                <select
+                  id="nuevo-asesor"
+                  value={asesor}
+                  onChange={(e) => setAsesor(e.target.value)}
+                >
+                  <option value="">Sin asignar</option>
+
+                  {asesores.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <p>
+                La propiedad comenzará como borrador
+                y no aparecerá en el catálogo público.
+              </p>
+
+              <button type="submit" disabled={guardando}>
+                {guardando ? 'Guardando...' : 'Guardar propiedad'}
+              </button>
+
+              <button
+                type="button"
+                disabled={guardando}
+                onClick={() => setMostrar(false)}
+              >
+                Cancelar
+              </button>
+            </form>
+          )}
+
+          <h3>Propiedades registradas</h3>
+
+          {casas.map((casa) => (
+            <article
         
-          key={casa.id}
-          style={{
-            border: '1px solid #777',
-            padding: '15px',
-            marginTop: '15px'
-          }}
-        >
-          <h3>{casa.title}</h3>
-
-          <p>{casa.city} - {casa.zone}</p>
-
-          <p>
-            {casa.price.toLocaleString('es-MX', {
-              style: 'currency',
-              currency: 'MXN'
-            })}
-          </p>
-
-          <p>Estado: {casa.status}</p>
-
-          <p>
-            Publicación: {casa.published ? 'Publicada' : 'Borrador'}
-          </p>
-
-          <button
-            type="button"
-            onClick={() => cambiarPublicacion(casa)}
-            disabled={publicando === casa.id}
-          >
-            {publicando === casa.id
-              ? 'Guardando...'
-              : casa.published
-                ? 'Despublicar propiedad'
-                : 'Publicar propiedad'}
-          </button>
-
-          <div style={{ marginTop: '12px' }}>
-            <label htmlFor={`asesor-${casa.id}`}>
-              Asesor responsable
-            </label>
-
-            <select
-              id={`asesor-${casa.id}`}
-              value={elegidos[casa.id] ?? casa.agent_id ?? ''}
-              onChange={(e) =>
-                setElegidos((prev) => ({
-                  ...prev,
-                  [casa.id]: e.target.value
-                }))
-              }
+              key={casa.id}
+              className="dci-admin-property-card"
             >
-              <option value="">Sin asignar</option>
+              <h3>{casa.title}</h3>
 
-              {asesores.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
+              <p>{casa.city} - {casa.zone}</p>
 
-            <button
-              type="button"
-              disabled={asignando === casa.id}
-              onClick={() => asignar(casa)}
-            >
-              {asignando === casa.id
-                ? 'Guardando...'
-                : 'Guardar asignación'}
-            </button>
-          </div>
+              <p>
+                {casa.price.toLocaleString('es-MX', {
+                  style: 'currency',
+                  currency: 'MXN'
+                })}
+              </p>
 
-          <SubirFotos propiedadId={casa.id} />
-        </article>
-      ))}
+              <p>Estado: {casa.status}</p>
 
-      <hr style={{ margin: '32px 0' }} />
-      <PanelProspectos />
+              <p>
+                Publicación: {casa.published ? 'Publicada' : 'Borrador'}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => cambiarPublicacion(casa)}
+                disabled={publicando === casa.id}
+              >
+                {publicando === casa.id
+                  ? 'Guardando...'
+                  : casa.published
+                    ? 'Despublicar propiedad'
+                    : 'Publicar propiedad'}
+              </button>
+
+              <div style={{ marginTop: '12px' }}>
+                <label htmlFor={`asesor-${casa.id}`}>
+                  Asesor responsable
+                </label>
+
+                <select
+                  id={`asesor-${casa.id}`}
+                  value={elegidos[casa.id] ?? casa.agent_id ?? ''}
+                  onChange={(e) =>
+                    setElegidos((prev) => ({
+                      ...prev,
+                      [casa.id]: e.target.value
+                    }))
+                  }
+                >
+                  <option value="">Sin asignar</option>
+
+                  {asesores.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  disabled={asignando === casa.id}
+                  onClick={() => asignar(casa)}
+                >
+                  {asignando === casa.id
+                    ? 'Guardando...'
+                    : 'Guardar asignación'}
+                </button>
+              </div>
+
+              <SubirFotos propiedadId={casa.id} />
+            </article>
+          ))}
+
+        </div>
+
+        <div hidden={seccion !== 'prospectos'}>
+          <PanelProspectos esAdmin={true} />
+        </div>
+      </div>
     </section>
   )
 }
