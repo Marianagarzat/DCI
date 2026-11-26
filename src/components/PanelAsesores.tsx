@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import SubirFotoAsesor from './SubirFotoAsesor'
 
 type Perfil = {
   agent_id: string
@@ -62,6 +63,7 @@ function TarjetaAsesor({ perfil }: { perfil: Perfil }) {
   }
 
   return (
+    <div>
     <form className="dci-admin-property-form" onSubmit={guardar}>
       <h3 style={{ color: '#14243a', marginTop: 0 }}>{perfil.account_name}</h3>
       <p style={{ color: '#52637b', fontSize: '13px' }}>
@@ -90,6 +92,8 @@ function TarjetaAsesor({ perfil }: { perfil: Perfil }) {
       <button type="submit" disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar perfil'}</button>
       {msg && <p role="status" style={{ color: error ? '#a52727' : '#21633f' }}>{msg}</p>}
     </form>
+    <SubirFotoAsesor asesorId={id} />
+    </div>
   )
 }
 
