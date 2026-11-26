@@ -89,3 +89,15 @@ body:has(.dci-catalogo) { margin: 0; display: block; background: #f5f7fa; }
 .dci-public-discount { color: #21633f; background: #e7f5ec; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 750; }
 .dci-public-reduction + .dci-public-price { margin-top: 6px !important; }
 .dci-catalogo .dci-public-savings { color: #21633f; font-weight: 650; font-size: 13px; margin-bottom: 12px; }
+
+
+/* Perfil profesional público */
+.dci-public-agent { max-width: 660px; margin-top: 24px; padding: clamp(16px,3vw,24px); background: #fff; border: 1px solid #dbe2ec; border-radius: 12px; }
+.dci-public-agent .dci-public-agent-head { display: flex; align-items: center; gap: 14px; margin: 14px 0; }
+.dci-public-agent-avatar { flex: 0 0 56px; height: 56px; display: grid; place-items: center; background: #e2e9f1; color: #24466b; border-radius: 50%; font-weight: 750; font-size: 19px; }
+.dci-catalogo .dci-public-agent h3 { color: #14243a; margin: 0; font-size: 19px; }
+.dci-public-agent .dci-public-agent-role { margin: 3px 0 0; font-size: 13px; }
+.dci-public-agent .dci-public-agent-bio { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 14px; }
+.dci-catalogo .dci-public-agent .dci-public-whatsapp { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; background: #176b45; color: #fff; border-radius: 8px; padding: 11px 16px; text-decoration: none; font-size: 14px; font-weight: 650; }
+.dci-catalogo .dci-public-agent .dci-public-whatsapp:hover { background: #115437; }
+@media(max-width:560px) { .dci-public-agent .dci-public-whatsapp { width: 100%; } }

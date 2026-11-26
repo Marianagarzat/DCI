@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import SubirFotos from './SubirFotos'
 import PanelProspectos from './PanelProspectos'
+import PanelAsesores from './PanelAsesores'
 import './PanelAdmin.css'
 
 type Casa = {
@@ -22,7 +23,7 @@ type Asesor = {
 }
 
 function PanelAdmin() {
-  const [seccion, setSeccion] = useState<'inventario' | 'prospectos'>('inventario')
+  const [seccion, setSeccion] = useState<'inventario' | 'prospectos' | 'asesores'>('inventario')
   const [casas, setCasas] = useState<Casa[]>([])
   const [asesores, setAsesores] = useState<Asesor[]>([])
 
@@ -306,6 +307,14 @@ if (errorAgentes) {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v3"/></svg>
             Prospectos
           </button>
+          <button
+            type="button"
+            aria-pressed={seccion === 'asesores'}
+            onClick={() => setSeccion('asesores')}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="9" r="3"/><path d="M6 18a6 6 0 0 1 12 0"/></svg>
+            Asesores
+          </button>
         </nav>
         <a className="dci-admin-catalogo" href="/">Ver catálogo público <span aria-hidden="true">↗</span></a>
       </aside>
@@ -313,10 +322,12 @@ if (errorAgentes) {
       <div className="dci-admin-main">
         <header className="dci-admin-header">
           <span>DCI / ADMINISTRACIÓN</span>
-          <h2>{seccion === 'inventario' ? 'Inventario de propiedades' : 'Gestión de prospectos'}</h2>
+          <h2>{seccion === 'inventario' ? 'Inventario de propiedades' : seccion === 'prospectos' ? 'Gestión de prospectos' : 'Gestión de asesores'}</h2>
           <p>{seccion === 'inventario'
             ? 'Administra tus inmuebles, publicaciones y asesores responsables.'
-            : 'Consulta y da seguimiento a los contactos de DCI.'}</p>
+            : seccion === 'prospectos'
+              ? 'Consulta y da seguimiento a los contactos de DCI.'
+              : 'Configura los perfiles profesionales visibles en el catálogo.'}</p>
         </header>
 
         <div className="dci-admin-inventory" hidden={seccion !== 'inventario'}>
@@ -568,6 +579,8 @@ if (errorAgentes) {
         <div hidden={seccion !== 'prospectos'}>
           <PanelProspectos esAdmin={true} />
         </div>
+
+        {seccion === 'asesores' && <PanelAsesores />}
       </div>
     </section>
   )

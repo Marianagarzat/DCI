@@ -4,6 +4,7 @@ import ResetPassword from './components/ResetPassword'
 import FotoPortada from './components/FotoPortada'
 import GaleriaFotos from './components/GaleriaFotos'
 import FormularioContacto from './components/FormularioContacto'
+import AsesorPublico from './components/AsesorPublico'
 import { supabase } from './lib/supabase'
 import './Catalogo.css'
 import './Portal.css'
@@ -205,6 +206,7 @@ function Catalogo() {
                   <p>Estacionamientos: {casa.parking ?? 'No especificado'} · Superficie: {casa.area_m2 !== null ? `${casa.area_m2} m²` : 'No especificada'}</p>
                   <h3>Descripción</h3><p className="dci-public-description">{casa.description || 'Esta propiedad aún no tiene descripción.'}</p>
                   <h3>Fotografías</h3><GaleriaFotos propiedadId={casa.id} />
+                  <AsesorPublico key={casa.id} propiedadId={casa.id} titulo={casa.title} />
                   <div className="dci-public-contact"><FormularioContacto key={casa.id} propiedadId={casa.id} /></div>
                 </section>}
               </article>
