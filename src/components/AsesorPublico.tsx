@@ -20,8 +20,12 @@ type Props = {
 export default function AsesorPublico({ propiedadId, titulo }: Props) {
   const [resultado, setResultado] = useState<Resultado>({ estado: 'cargando' })
 
+  const [foto, setFoto] = useState('')
+
   useEffect(() => {
     let vigente = true
+    setFoto('')
+    setResultado({ estado: 'cargando' })
 
     async function cargar() {
       try {
@@ -32,10 +36,32 @@ export default function AsesorPublico({ propiedadId, titulo }: Props) {
         if (!vigente) return
         if (error) throw error
         setResultado({ estado: 'listo', perfil: data as Perfil | null })
+        if (data) void cargarFoto()
       } catch (error) {
         if (!vigente) return
         console.error('Error al consultar asesor público:', error)
         setResultado({ estado: 'error' })
+      }
+    }
+
+    async function cargarFoto() {
+      try {
+        const { data: ruta, error } = await supabase.rpc('dci_get_public_agent_photo', {
+          p_property_id: propiedadId
+        })
+        if (error) throw error
+        if (!vigente || typeof ruta !== 'string' || !ruta) return
+
+        const { data, error: errorFoto } = await supabase.storage
+          .from('agent-photos')
+          .createSignedUrl(ruta, 300)
+        if (errorFoto) throw errorFoto
+        if (vigente && data?.signedUrl) setFoto(data.signedUrl)
+      } catch (error) {
+        if (vigente) {
+          console.error('Error al consultar fotografía del asesor:', error)
+          setFoto('')
+        }
       }
     }
 
@@ -66,7 +92,18 @@ export default function AsesorPublico({ propiedadId, titulo }: Props) {
     <section className="dci-public-agent" aria-label="Asesor inmobiliario">
       <span className="dci-public-kicker">TU ASESOR INMOBILIARIO</span>
       <div className="dci-public-agent-head">
-        <div className="dci-public-agent-avatar" aria-hidden="true">{iniciales}</div>
+        {foto ? (
+          <div className="dci-public-agent-avatar" style={{ overflow: 'hidden' }}>
+            <img
+              src={foto}
+              alt={`Fotografía de ${perfil.display_name}`}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: '50%' }}
+              onError={() => setFoto('')}
+            />
+          </div>
+        ) : (
+          <div className="dci-public-agent-avatar" aria-hidden="true">{iniciales}</div>
+        )}
         <div>
           <h3>{perfil.display_name}</h3>
           <p className="dci-public-agent-role">Asesor inmobiliario DCI</p>
